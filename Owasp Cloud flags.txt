@@ -1,0 +1,320 @@
+ Broken Access Control
+IAM Permissions Misconfiguration:
+
+If an IAM role has overly broad permissions, such as "Action": "*" or "Resource": "*", this could be flagged as a vulnerability.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws iam get-role --role-name <role-name>
+Output:
+
+json
+Copy
+Edit
+{
+  "Role": {
+    "RoleName": "ExampleRole",
+    "Arn": "arn:aws:iam::123456789012:role/ExampleRole",
+    "AssumeRolePolicyDocument": { ... },
+    "AttachedPolicies": [
+      {
+        "PolicyName": "AdministratorAccess",
+        "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+      }
+    ]
+  }
+}
+Flagged as a vulnerability: If the AdministratorAccess policy is attached, it grants full administrative permissions to the role, which may violate the principle of least privilege.
+
+2. Sensitive Data Exposure
+Unencrypted S3 Bucket:
+
+If an S3 bucket is found to be unencrypted or has public access, this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws s3api get-bucket-encryption --bucket <bucket-name>
+Output:
+
+json
+Copy
+Edit
+{
+  "ServerSideEncryptionConfiguration": {
+    "Rules": [
+      {
+        "ApplyServerSideEncryptionByDefault": {
+          "SSEAlgorithm": "AES256"
+        }
+      }
+    ]
+  }
+}
+Flagged as a vulnerability: If no encryption is configured, this is a potential risk, as sensitive data might be stored in plaintext.
+
+Public S3 Bucket:
+
+If a bucket is publicly accessible, flag this as a vulnerability.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws s3api get-bucket-acl --bucket <bucket-name>
+Output:
+
+json
+Copy
+Edit
+{
+  "Owner": { ... },
+  "Grants": [
+    {
+      "Grantee": {
+        "Type": "CanonicalUser",
+        "ID": "example-id",
+        "DisplayName": "example-user"
+      },
+      "Permission": "FULL_CONTROL"
+    },
+    {
+      "Grantee": {
+        "Type": "Group",
+        "URI": "http://acs.amazonaws.com/groups/global/AllUsers"
+      },
+      "Permission": "READ"
+    }
+  ]
+}
+Flagged as a vulnerability: If you see "URI": "http://acs.amazonaws.com/groups/global/AllUsers" and "Permission": "READ", the bucket is publicly readable.
+
+3. Lack of Security Logging and Monitoring
+CloudTrail Not Enabled:
+
+If AWS CloudTrail is not enabled or improperly configured, this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws cloudtrail describe-trails
+Output:
+
+json
+Copy
+Edit
+{
+  "trailList": []
+}
+Flagged as a vulnerability: An empty list means CloudTrail is not enabled, which could lead to lack of auditing and monitoring of API activity.
+
+CloudWatch Logs Not Configured:
+
+If logs for services like EC2, Lambda, and RDS are not being sent to CloudWatch Logs, this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws logs describe-log-groups
+Output:
+
+json
+Copy
+Edit
+{
+  "logGroups": []
+}
+Flagged as a vulnerability: No log groups means logs are not being collected or monitored, increasing the risk of undetected malicious activity.
+
+4. Insecure APIs
+API Gateway Without Authentication:
+
+If an API Gateway endpoint is not protected by any authentication method (e.g., IAM, API key, Lambda authorizer), flag this as a vulnerability.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws apigateway get-method --rest-api-id <api-id> --resource-id <resource-id> --http-method GET
+Output:
+
+json
+Copy
+Edit
+{
+  "authorizationType": "NONE"
+}
+Flagged as a vulnerability: "authorizationType": "NONE" means the API method is not secured, which is a significant security risk.
+
+5. Misconfigured Cloud Services
+Security Group with Open Inbound Ports:
+
+If an EC2 instance's security group allows unrestricted inbound traffic (e.g., from 0.0.0.0/0), this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws ec2 describe-security-groups --group-ids <sg-id>
+Output:
+
+json
+Copy
+Edit
+{
+  "SecurityGroups": [
+    {
+      "GroupId": "sg-0123456789abcdef0",
+      "GroupName": "example-security-group",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 22,
+          "ToPort": 22,
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+Flagged as a vulnerability: "CidrIp": "0.0.0.0/0" means the security group allows SSH access from any IP address, which is a major security risk.
+
+6. Serverless Security Risks
+Lambda Function with Excessive Permissions:
+
+If a Lambda function has overly broad permissions, such as "Action": "*" or "Resource": "*", this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws lambda get-policy --function-name <function-name>
+Output:
+
+json
+Copy
+Edit
+{
+  "Policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}]}"
+}
+Flagged as a vulnerability: "Action": "*" and "Resource": "*" means the Lambda function has full access to all AWS resources, violating the least privilege principle.
+
+7. Container and Orchestration Security
+Unscanned Docker Images in ECR:
+
+If images in Amazon ECR are not scanned for vulnerabilities, this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws ecr describe-repositories
+Output:
+
+json
+Copy
+Edit
+{
+  "repositories": [
+    {
+      "repositoryName": "example-repo",
+      "repositoryUri": "123456789012.dkr.ecr.us-west-2.amazonaws.com/example-repo",
+      "imageScanningConfiguration": {
+        "scanOnPush": false
+      }
+    }
+  ]
+}
+Flagged as a vulnerability: "scanOnPush": false means that newly pushed images are not automatically scanned for vulnerabilities.
+
+8. Cross-Site Scripting (XSS) and Injection Attacks
+WAF Not Configured:
+
+If the AWS WAF (Web Application Firewall) is not set up to filter XSS or injection attacks, this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws wafv2 list-web-acls
+Output:
+
+json
+Copy
+Edit
+{
+  "WebACLs": []
+}
+Flagged as a vulnerability: An empty list indicates that AWS WAF is not configured, increasing the risk of attacks like XSS and SQL injection.
+
+9. Insufficient Identity and Credential Management
+Unrotated Access Keys:
+
+If IAM user access keys have been active for too long and have not been rotated, flag this as a vulnerability.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws iam list-access-keys --user-name <user-name>
+Output:
+
+json
+Copy
+Edit
+{
+  "AccessKeyMetadata": [
+    {
+      "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+      "Status": "Active",
+      "CreateDate": "2021-01-01T12:00:00Z"
+    }
+  ]
+}
+Flagged as a vulnerability: Access keys older than a few months without rotation or expiration may present a security risk.
+
+10. Supply Chain Vulnerabilities
+Unverified Lambda Layer:
+
+If Lambda functions use layers from untrusted or unverified sources, this should be flagged.
+
+Output Example:
+
+bash
+Copy
+Edit
+aws lambda list-layers
+Output:
+
+json
+Copy
+Edit
+{
+  "Layers": [
+    {
+      "LayerName": "unverified-layer",
+      "LayerVersion": 1
+    }
+  ]
+}
+Flagged as a vulnerability: Use of unverified third-party layers could introduce security risks from vulnerabilities in those layers.
