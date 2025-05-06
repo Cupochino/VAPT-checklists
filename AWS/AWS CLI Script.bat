@@ -35,7 +35,7 @@ call :RunCheck "CloudTrail Trails" "aws cloudtrail describe-trails" "cloudtrail_
 call :RunCheck "CloudTrail Logging Status" "aws cloudtrail get-trail-status --name default" "cloudtrail_status.json"
 
 call :RunCheck "EC2 Instances" "aws ec2 describe-instances" "ec2_instances.json"
-call :RunCheck "Security Groups" "aws ec2 describe-security-groups" "ec2_security_groups.json"
+call :RunCheck "Security Groups" "aws ec2 describe-security-groups --group-ids --output table" "ec2_security_groups.json"
 
 call :RunCheck "RDS Instances" "aws rds describe-db-instances" "rds_instances.json"
 
