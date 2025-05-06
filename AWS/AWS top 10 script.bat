@@ -51,7 +51,7 @@ del temp_apis.txt
 :: --- Misconfigured Cloud Services ---
 :: Check for EC2 security groups with open ports
 echo "Checking for EC2 security groups with open inbound ports (Misconfigured Cloud Services)" > "%OUTPUT_DIR%\misconfigured_cloud_services.txt"
-aws ec2 describe-security-groups --region %AWS_REGION% >> "%OUTPUT_DIR%\misconfigured_cloud_services.txt"
+aws ec2 describe-security-groups --group-ids --output table --region %AWS_REGION% >> "%OUTPUT_DIR%\misconfigured_cloud_services.txt"
 
 :: --- Serverless Security Risks ---
 :: Check if Lambda functions have excessive permissions
